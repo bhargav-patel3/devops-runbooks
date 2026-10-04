@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incident Severity Levels &amp; Escalation Matrix | DevOps Runbooks</title>
+  <meta name="description" content="Authoritative classification framework and escalation protocol for defining incident severity (Sev0 through Sev4). Use during the first 5 minutes of any production incident to classify customer impact, trigger proper war-room protocols, and assign response SLAs.">
+  <style>
+    /* =====================================================================
+       STANDALONE MODERN DEVOPS RUNBOOK STYLESHEET
+       Offline-first: Zero external CSS, fonts, or network requests required.
+       ===================================================================== */
+    :root {
+      --bg-page: #0b0f19;
+      --bg-surface: #111827;
+      --bg-card: #1f2937;
+      --bg-card-hover: #263346;
+      --bg-input: #0e1526;
+      --border-subtle: #374151;
+      --border-focus: #6366f1;
+
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+
+      /* Colors for Checkbox States */
+      --done-color: #10b981;
+      --done-bg: rgba(16, 185, 129, 0.12);
+      --done-border: #059669;
+      --done-glow: rgba(16, 185, 129, 0.3);
+
+      --na-color: #0ea5e9;
+      --na-bg: rgba(14, 165, 233, 0.12);
+      --na-border: #0284c7;
+      --na-glow: rgba(14, 165, 233, 0.3);
+
+      --brand-indigo: #6366f1;
+      --brand-indigo-light: #818cf8;
+      --amber-alert: #f59e0b;
+      --danger-red: #ef4444;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-card: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.5;
+      padding: 24px 16px 80px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Top Navigation Bar */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .nav-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--brand-indigo-light);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+      transition: color 0.2s ease;
+    }
+
+    .nav-brand:hover {
+      color: #fff;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border-color: #4b5563;
+    }
+
+    /* Header Box */
+    .header-card {
+      background: linear-gradient(180deg, #161f30 0%, #111827 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+
+    .badge-primary {
+      background: rgba(99, 102, 241, 0.2);
+      color: var(--brand-indigo-light);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+    }
+
+    .badge-priority {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-version {
+      background: rgba(156, 163, 175, 0.15);
+      color: #d1d5db;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .runbook-title {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+
+    .runbook-desc {
+      font-size: 15px;
+      color: #d1d5db;
+      line-height: 1.6;
+      max-width: 880px;
+      margin-bottom: 20px;
+    }
+
+    /* Metadata Grid */
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .meta-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .meta-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .meta-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .meta-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* Sticky Progress & Filter Bar */
+    .control-bar {
+      position: sticky;
+      top: 12px;
+      z-index: 50;
+      background: rgba(17, 24, 39, 0.94);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .progress-stats-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .progress-labels {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .stat-badge.stat-done { color: var(--done-color); }
+    .stat-badge.stat-na { color: var(--na-color); }
+    .stat-badge.stat-pending { color: var(--text-muted); }
+
+    .stat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .progress-percent {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-bar-track {
+      width: 100%;
+      height: 8px;
+      background: #232d3f;
+      border-radius: 9999px;
+      overflow: hidden;
+      display: flex;
+      margin-bottom: 12px;
+    }
+
+    .progress-fill-done {
+      background: linear-gradient(90deg, #10b981, #059669);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-fill-na {
+      background: linear-gradient(90deg, #38bdf8, #0284c7);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .filter-actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-filter {
+      background: transparent;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-filter.active, .btn-filter:hover {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border-color: #6b7280;
+    }
+
+    .search-input {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      padding: 5px 10px;
+      font-size: 12px;
+      outline: none;
+      width: 180px;
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      width: 240px;
+      border-color: var(--border-focus);
+    }
+
+    /* Section Styling */
+    .runbook-section {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .section-banner {
+      background: #141c2c;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .section-step-num {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--brand-indigo-light);
+      font-weight: 800;
+      font-size: 13px;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .section-heading {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+
+    .section-subtext {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .section-badge {
+      font-size: 11px;
+      background: var(--bg-card);
+      color: var(--text-dim);
+      border: 1px solid var(--border-subtle);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .items-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Checklist Item Component */
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid #1f293d;
+      background: var(--bg-surface);
+      transition: background 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    }
+
+    .check-item:last-child {
+      border-bottom: none;
+    }
+
+    .check-item:hover {
+      background: #131d2e;
+    }
+
+    /* Front Dual Controls */
+    .check-controls {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .btn-check {
+      background: #1f293d;
+      border: 1px solid #374151;
+      border-radius: var(--radius-sm);
+      color: var(--text-dim);
+      padding: 6px 9px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      user-select: none;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-check:hover {
+      border-color: #6b7280;
+      color: var(--text-main);
+    }
+
+    .btn-check .icon-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Done Active State (Green Tick) */
+    .btn-done.is-active {
+      background: var(--done-color);
+      border-color: var(--done-border);
+      color: #ffffff;
+      box-shadow: 0 0 10px var(--done-glow);
+    }
+
+    /* NA Active State (Blue Dash) */
+    .btn-na.is-active {
+      background: var(--na-color);
+      border-color: var(--na-border);
+      color: #ffffff;
+      box-shadow: 0 0 10px var(--na-glow);
+    }
+
+    /* Item Card States */
+    .check-item.status-done {
+      border-left: 4px solid var(--done-color);
+      background: rgba(16, 185, 129, 0.04);
+    }
+
+    .check-item.status-done .item-title {
+      color: #34d399;
+    }
+
+    .check-item.status-na {
+      border-left: 4px solid var(--na-color);
+      background: rgba(14, 165, 233, 0.04);
+      opacity: 0.72;
+    }
+
+    .check-item.status-na .item-title {
+      color: #7dd3fc;
+      text-decoration: line-through;
+    }
+
+    .check-item.status-na .item-desc {
+      font-style: italic;
+    }
+
+    /* Item Content */
+    .item-details {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-header-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .item-tag {
+      font-size: 11px;
+      color: var(--text-dim);
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .item-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.35;
+    }
+
+    .item-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    /* Code Snippet Box */
+    .code-preview {
+      background: #080d1a;
+      border: 1px solid #1e293b;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .code-header {
+      background: #0d1527;
+      padding: 4px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .code-label {
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #94a3b8;
+      font-family: monospace;
+      font-weight: 600;
+    }
+
+    .btn-copy-code {
+      background: transparent;
+      border: none;
+      color: #818cf8;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .btn-copy-code:hover {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    .code-preview pre {
+      padding: 10px 12px;
+      margin: 0;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12.5px;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    /* Bottom Action Controls */
+    .footer-actions-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 22px;
+      margin-top: 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .auto-save-pill {
+      font-size: 12px;
+      color: #34d399;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .auto-save-dot {
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #10b981;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .footer-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-action {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-reset {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #f87171;
+    }
+
+    .btn-reset:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #ffffff;
+      border-color: var(--danger-red);
+    }
+
+    .btn-copy-summary {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.4);
+      color: var(--brand-indigo-light);
+    }
+
+    .btn-copy-summary:hover {
+      background: rgba(99, 102, 241, 0.3);
+      color: #ffffff;
+    }
+
+    .btn-print {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+    }
+
+    .btn-print:hover {
+      background: var(--bg-card-hover);
+      border-color: #6b7280;
+    }
+
+    /* Toast Notification */
+    .toast-notice {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1f2937;
+      color: #ffffff;
+      border: 1px solid #4b5563;
+      border-radius: var(--radius-sm);
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .toast-notice.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Print Stylesheet */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+      }
+      .top-nav, .control-bar, .footer-actions-card, .btn-copy-code, .search-input {
+        display: none !important;
+      }
+      .header-card, .runbook-section, .check-item, .code-preview {
+        border-color: #cccccc !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+      }
+      .runbook-title, .section-heading, .item-title {
+        color: #000000 !important;
+      }
+      .item-desc, .section-subtext, .runbook-desc {
+        color: #444444 !important;
+      }
+      .code-preview pre {
+        color: #000000 !important;
+        background: #f8f8f8 !important;
+      }
+      .check-item.status-done {
+        border-left: 4px solid #10b981 !important;
+      }
+      .check-item.status-na {
+        border-left: 4px solid #0284c7 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <a href="../index.html" class="nav-brand" title="Back to All Runbooks">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>All DevOps Runbooks</span>
+      </a>
+
+      <div class="nav-actions">
+        <button type="button" class="nav-btn" onclick="copyMarkdownReport()" title="Copy Markdown Checklist for Slack/Jira">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>Copy Markdown</span>
+        </button>
+        <button type="button" class="nav-btn" onclick="window.print()" title="Print Runbook or Save as PDF">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          <span>Print / PDF</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Runbook Header & Intro -->
+    <header class="header-card">
+      <div class="header-badges">
+        <span class="badge badge-primary">Incident Response</span>
+        <span class="badge badge-priority">Supporting</span>
+        <span class="badge badge-version">Severity Matrix</span>
+      </div>
+      <h1 class="runbook-title">Incident Severity Levels &amp; Escalation Matrix</h1>
+      <p class="runbook-desc">Authoritative classification framework and escalation protocol for defining incident severity (Sev0 through Sev4). Use during the first 5 minutes of any production incident to classify customer impact, trigger proper war-room protocols, and assign response SLAs.</p>
+
+      <!-- Metadata Fields (Auto-saved) -->
+      <div class="meta-grid">
+        
+    <div class="meta-field">
+      <label class="meta-label">Incident Name</label>
+      <input type="text" class="meta-input" placeholder="e.g. Ingress Gateway SSL Expiry" data-meta-key="Incident Name">
+    </div>
+  
+    <div class="meta-field">
+      <label class="meta-label">Current Assessed Severity</label>
+      <input type="text" class="meta-input" placeholder="Sev1 / Sev2 / Sev3 / Sev4" data-meta-key="Current Assessed Severity">
+    </div>
+  
+    <div class="meta-field">
+      <label class="meta-label">Assessing Lead</label>
+      <input type="text" class="meta-input" placeholder="Triage Engineer" data-meta-key="Assessing Lead">
+    </div>
+  
+    <div class="meta-field">
+      <label class="meta-label">Customer Impact Assessment</label>
+      <input type="text" class="meta-input" placeholder="&gt; 25% of active users" data-meta-key="Customer Impact Assessment">
+    </div>
+  
+      </div>
+    </header>
+
+    <!-- Interactive Sticky Progress & Filter Control Bar -->
+    <div class="control-bar" id="sticky-control-bar">
+      <div class="progress-stats-row">
+        <div class="progress-labels">
+          <span class="stat-badge stat-done">
+            <span class="stat-dot"></span>
+            <span id="count-done">0</span> Done
+          </span>
+          <span class="stat-badge stat-na">
+            <span class="stat-dot"></span>
+            <span id="count-na">0</span> N/A
+          </span>
+          <span class="stat-badge stat-pending">
+            <span class="stat-dot"></span>
+            <span id="count-pending">7</span> Pending
+          </span>
+        </div>
+        <div class="progress-percent" id="progress-percent-label">0% Completed</div>
+      </div>
+
+      <div class="progress-bar-track" aria-label="Completion progress">
+        <div class="progress-fill-done" id="progress-done-bar" style="width: 0%;"></div>
+        <div class="progress-fill-na" id="progress-na-bar" style="width: 0%;"></div>
+      </div>
+
+      <div class="filter-actions-row">
+        <div class="filter-pills">
+          <button type="button" class="btn-filter active" data-filter="all" onclick="setFilter('all')">All (<span id="filter-all-count">7</span>)</button>
+          <button type="button" class="btn-filter" data-filter="pending" onclick="setFilter('pending')">Pending</button>
+          <button type="button" class="btn-filter" data-filter="done" onclick="setFilter('done')">Done</button>
+          <button type="button" class="btn-filter" data-filter="na" onclick="setFilter('na')">N/A</button>
+        </div>
+
+        <input type="text" class="search-input" id="item-search" placeholder="Search checks..." oninput="handleSearch(this.value)">
+      </div>
+    </div>
+
+    <!-- Main Checklist Sections Container -->
+    <!-- 
+      ========================================================================
+      EASY CUSTOMIZATION NOTICE:
+      To edit or add any check point, simply modify or duplicate any 
+      <div class="check-item" data-id="..."> block below.
+      The counters, storage, and filters automatically handle all changes!
+      ========================================================================
+    -->
+    <main class="checklist-main" id="checklist-container">
+      
+      <!-- =================================================================
+           SECTION 1: Phase 1: Severity Level Classification Matrix
+           To add a new point, copy and paste a <div class="check-item"> block inside this section.
+           ================================================================= -->
+      <section class="runbook-section">
+        <div class="section-banner">
+          <div class="section-title-wrap">
+            <span class="section-step-num">1</span>
+            <div class="section-titles">
+              <h3 class="section-heading">Phase 1: Severity Level Classification Matrix</h3>
+              <p class="section-subtext">Categorize the incident by matching observable business and technical impacts.</p>
+            </div>
+          </div>
+          <span class="section-badge">4 Checks</span>
+        </div>
+
+        <div class="items-list">
+          
+        <!-- ITEM sl-1 -->
+        <div class="check-item" data-id="sl-1" id="item-sl-1">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-1</span>
+              <h4 class="item-title">SEV-0: Catastrophic / Company-Wide Outage</h4>
+            </div>
+            <p class="item-desc">Complete global failure of all systems or major security breach. RTO: &lt; 30 mins. Immediate page to CTO, VP Eng, and all engineering leads.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Impact: 100% of customers down. War room: Continuous executive bridge.</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        <!-- ITEM sl-2 -->
+        <div class="check-item" data-id="sl-2" id="item-sl-2">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-2</span>
+              <h4 class="item-title">SEV-1: Critical / Core Functionality Down</h4>
+            </div>
+            <p class="item-desc">Primary business flow broken (e.g. checkout, login, data ingestion) with no workaround. Page primary + secondary on-call. SLA: 5m ack, 30m mitigation.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Impact: &gt; 20% of customer transactions failing. Public status page update required.</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        <!-- ITEM sl-3 -->
+        <div class="check-item" data-id="sl-3" id="item-sl-3">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-3</span>
+              <h4 class="item-title">SEV-2: Major Degradation with Partial Workaround</h4>
+            </div>
+            <p class="item-desc">Significant feature down (e.g. exports, reports, search) or severe latency, but core purchasing works. SLA: 15m ack, 2h mitigation.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Impact: Significant customer inconvenience with workaround available.</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        <!-- ITEM sl-4 -->
+        <div class="check-item" data-id="sl-4" id="item-sl-4">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-4</span>
+              <h4 class="item-title">SEV-3: Minor Degradation / Internal Tooling</h4>
+            </div>
+            <p class="item-desc">Minor bug affecting &lt; 5% of users, internal dashboard down, or non-paging metric anomaly. SLA: Handled during normal business hours.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Impact: Low. Handled by ticket during daytime hours.</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        </div>
+      </section>
+    
+      <!-- =================================================================
+           SECTION 2: Phase 2: Escalation Paths & Communication Intervals
+           To add a new point, copy and paste a <div class="check-item"> block inside this section.
+           ================================================================= -->
+      <section class="runbook-section">
+        <div class="section-banner">
+          <div class="section-title-wrap">
+            <span class="section-step-num">2</span>
+            <div class="section-titles">
+              <h3 class="section-heading">Phase 2: Escalation Paths &amp; Communication Intervals</h3>
+              <p class="section-subtext">Enforce notification cadences and stakeholder communication intervals.</p>
+            </div>
+          </div>
+          <span class="section-badge">3 Checks</span>
+        </div>
+
+        <div class="items-list">
+          
+        <!-- ITEM sl-5 -->
+        <div class="check-item" data-id="sl-5" id="item-sl-5">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-5</span>
+              <h4 class="item-title">Sev-1 Communication Cadence: Updates Every 15–20 Minutes</h4>
+            </div>
+            <p class="item-desc">Incident Commander must publish written internal updates in #incident-alerts and public status page every 20 minutes regardless of progress.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Format: &quot;Current Status | Mitigation Attempted | Next Step | ETA for Next Update&quot;</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        <!-- ITEM sl-6 -->
+        <div class="check-item" data-id="sl-6" id="item-sl-6">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-6</span>
+              <h4 class="item-title">Executive Escalation Trigger (30-Minute Rule)</h4>
+            </div>
+            <p class="item-desc">If a Sev-1 incident is not mitigated within 30 minutes of triage, automatically escalate notification to VP of Engineering and Head of Product.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Trigger PagerDuty escalation rule: Executive Escalation Policy</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        <!-- ITEM sl-7 -->
+        <div class="check-item" data-id="sl-7" id="item-sl-7">
+          <div class="check-controls">
+            <!-- 1. Done Checkbox (Green Tick when checked) -->
+            <button type="button" class="btn-check btn-done" data-action="done" title="Mark as Done" aria-label="Mark as Done">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="btn-text">Done</span>
+            </button>
+
+            <!-- 2. NA Checkbox (Blue Dash when clicked) -->
+            <button type="button" class="btn-check btn-na" data-action="na" title="Mark as Not Applicable" aria-label="Mark as Not Applicable">
+              <span class="icon-indicator">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+              </span>
+              <span class="btn-text">N/A</span>
+            </button>
+          </div>
+
+          <div class="item-details">
+            <div class="item-header-line">
+              <span class="item-tag">#sl-7</span>
+              <h4 class="item-title">Verify Incident Commander Handover if Shift Extends &gt; 4 Hours</h4>
+            </div>
+            <p class="item-desc">If incident war room exceeds 4 hours, formally transfer Incident Commander role to fresh engineer to maintain operational vigilance.</p>
+            <div class="code-preview">
+            <div class="code-header">
+              <span class="code-label">CLI Command / Verification</span>
+              <button type="button" class="btn-copy-code" onclick="copySnippet(this)" title="Copy Command">Copy</button>
+            </div>
+            <pre><code># Transition IC role: Record new IC name in Slack topic and meeting notes</code></pre>
+          </div>
+          </div>
+        </div>
+      
+        </div>
+      </section>
+    
+    </main>
+
+    <!-- Bottom Action Bar with Reset Button -->
+    <footer class="footer-actions-card">
+      <div class="footer-left">
+        <div class="auto-save-pill">
+          <span class="auto-save-dot"></span>
+          <span>State auto-saved locally in browser</span>
+        </div>
+        <p class="footer-note">Single standalone file. Works completely offline without server or internet connection.</p>
+      </div>
+
+      <div class="footer-buttons">
+        <button type="button" class="btn-action btn-copy-summary" onclick="copyMarkdownReport()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>Copy Summary</span>
+        </button>
+
+        <!-- Reset Button at bottom as requested -->
+        <button type="button" class="btn-action btn-reset" onclick="resetAllCheckboxes()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span>Reset All Checkboxes</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div class="toast-notice" id="toast-message">Action completed</div>
+
+  <!-- =====================================================================
+       EMBEDDED CLIENT SCRIPT
+       Offline-first state engine with LocalStorage persistence and search.
+       ===================================================================== -->
+  <script>
+    const STORAGE_KEY = 'runbook_state_severity-levels';
+    let currentFilter = 'all';
+    let searchQuery = '';
+
+    // Initialize Runbook on DOM load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSavedState();
+      bindCheckboxEvents();
+      bindMetadataEvents();
+      updateProgress();
+    });
+
+    // Bind click events on Done and NA buttons
+    function bindCheckboxEvents() {
+      const items = document.querySelectorAll('.check-item');
+      items.forEach(item => {
+        const id = item.getAttribute('data-id');
+        const doneBtn = item.querySelector('.btn-done');
+        const naBtn = item.querySelector('.btn-na');
+
+        if (doneBtn) {
+          doneBtn.addEventListener('click', () => toggleState(item, id, 'done'));
+        }
+        if (naBtn) {
+          naBtn.addEventListener('click', () => toggleState(item, id, 'na'));
+        }
+      });
+    }
+
+    // Toggle Done or NA status
+    function toggleState(item, id, targetAction) {
+      const doneBtn = item.querySelector('.btn-done');
+      const naBtn = item.querySelector('.btn-na');
+      
+      const isCurrentlyDone = item.classList.contains('status-done');
+      const isCurrentlyNa = item.classList.contains('status-na');
+
+      if (targetAction === 'done') {
+        if (isCurrentlyDone) {
+          // Uncheck
+          item.classList.remove('status-done');
+          doneBtn.classList.remove('is-active');
+        } else {
+          // Check done, uncheck NA
+          item.classList.add('status-done');
+          item.classList.remove('status-na');
+          doneBtn.classList.add('is-active');
+          naBtn.classList.remove('is-active');
+        }
+      } else if (targetAction === 'na') {
+        if (isCurrentlyNa) {
+          // Uncheck
+          item.classList.remove('status-na');
+          naBtn.classList.remove('is-active');
+        } else {
+          // Check NA, uncheck done
+          item.classList.add('status-na');
+          item.classList.remove('status-done');
+          naBtn.classList.add('is-active');
+          doneBtn.classList.remove('is-active');
+        }
+      }
+
+      saveState();
+      updateProgress();
+      applyFilters();
+    }
+
+    // Update Progress Bar & Counter Badges
+    function updateProgress() {
+      const items = Array.from(document.querySelectorAll('.check-item'));
+      const total = items.length;
+      let done = 0;
+      let na = 0;
+
+      items.forEach(item => {
+        if (item.classList.contains('status-done')) done++;
+        else if (item.classList.contains('status-na')) na++;
+      });
+
+      const pending = total - done - na;
+      const donePercent = total > 0 ? (done / total) * 100 : 0;
+      const naPercent = total > 0 ? (na / total) * 100 : 0;
+      const completedPercent = Math.round(donePercent + naPercent);
+
+      // Update counters
+      const countDoneEl = document.getElementById('count-done');
+      const countNaEl = document.getElementById('count-na');
+      const countPendingEl = document.getElementById('count-pending');
+      const filterAllCountEl = document.getElementById('filter-all-count');
+      const percentLabelEl = document.getElementById('progress-percent-label');
+      const doneBarEl = document.getElementById('progress-done-bar');
+      const naBarEl = document.getElementById('progress-na-bar');
+
+      if (countDoneEl) countDoneEl.textContent = done;
+      if (countNaEl) countNaEl.textContent = na;
+      if (countPendingEl) countPendingEl.textContent = pending;
+      if (filterAllCountEl) filterAllCountEl.textContent = total;
+      if (percentLabelEl) percentLabelEl.textContent = completedPercent + '% Completed';
+
+      if (doneBarEl) doneBarEl.style.width = donePercent + '%';
+      if (naBarEl) naBarEl.style.width = naPercent + '%';
+    }
+
+    // Save State to LocalStorage
+    function saveState() {
+      try {
+        const state = {
+          items: {},
+          meta: {}
+        };
+
+        document.querySelectorAll('.check-item').forEach(item => {
+          const id = item.getAttribute('data-id');
+          if (item.classList.contains('status-done')) {
+            state.items[id] = 'done';
+          } else if (item.classList.contains('status-na')) {
+            state.items[id] = 'na';
+          }
+        });
+
+        document.querySelectorAll('.meta-input').forEach(input => {
+          const key = input.getAttribute('data-meta-key');
+          if (key && input.value.trim()) {
+            state.meta[key] = input.value.trim();
+          }
+        });
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
+
+    // Load State from LocalStorage
+    function loadSavedState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+
+        if (state.items) {
+          Object.keys(state.items).forEach(id => {
+            const item = document.querySelector(`.check-item[data-id="${id}"]`);
+            if (!item) return;
+
+            const val = state.items[id];
+            const doneBtn = item.querySelector('.btn-done');
+            const naBtn = item.querySelector('.btn-na');
+
+            if (val === 'done') {
+              item.classList.add('status-done');
+              if (doneBtn) doneBtn.classList.add('is-active');
+            } else if (val === 'na') {
+              item.classList.add('status-na');
+              if (naBtn) naBtn.classList.add('is-active');
+            }
+          });
+        }
+
+        if (state.meta) {
+          document.querySelectorAll('.meta-input').forEach(input => {
+            const key = input.getAttribute('data-meta-key');
+            if (key && state.meta[key]) {
+              input.value = state.meta[key];
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to parse saved state:', e);
+      }
+    }
+
+    // Bind metadata input saving
+    function bindMetadataEvents() {
+      document.querySelectorAll('.meta-input').forEach(input => {
+        input.addEventListener('input', () => {
+          saveState();
+        });
+      });
+    }
+
+    // Reset All Checkboxes Function
+    function resetAllCheckboxes() {
+      const confirmReset = window.confirm('Are you sure you want to reset all checkboxes in this runbook? This cannot be undone.');
+      if (!confirmReset) return;
+
+      document.querySelectorAll('.check-item').forEach(item => {
+        item.classList.remove('status-done', 'status-na');
+        const doneBtn = item.querySelector('.btn-done');
+        const naBtn = item.querySelector('.btn-na');
+        if (doneBtn) doneBtn.classList.remove('is-active');
+        if (naBtn) naBtn.classList.remove('is-active');
+      });
+
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+
+      updateProgress();
+      applyFilters();
+      showToast('All checklist items have been reset');
+    }
+
+    // Filtering logic
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.btn-filter').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filter) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      applyFilters();
+    }
+
+    // Search query logic
+    function handleSearch(val) {
+      searchQuery = (val || '').toLowerCase().trim();
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const items = document.querySelectorAll('.check-item');
+      items.forEach(item => {
+        const isDone = item.classList.contains('status-done');
+        const isNa = item.classList.contains('status-na');
+        const isPending = !isDone && !isNa;
+
+        let matchesFilter = true;
+        if (currentFilter === 'done' && !isDone) matchesFilter = false;
+        if (currentFilter === 'na' && !isNa) matchesFilter = false;
+        if (currentFilter === 'pending' && !isPending) matchesFilter = false;
+
+        let matchesSearch = true;
+        if (searchQuery) {
+          const text = item.textContent.toLowerCase();
+          if (!text.includes(searchQuery)) matchesSearch = false;
+        }
+
+        if (matchesFilter && matchesSearch) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
+    // Copy single code snippet
+    function copySnippet(btn) {
+      const pre = btn.closest('.code-preview').querySelector('pre code');
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        showToast('Command copied to clipboard');
+      });
+    }
+
+    // Copy formatted Markdown summary
+    function copyMarkdownReport() {
+      const title = document.querySelector('.runbook-title').textContent.trim();
+      let md = `## ${title} Summary\n\n`;
+      
+      // Add metadata if filled
+      document.querySelectorAll('.meta-input').forEach(input => {
+        const val = input.value.trim();
+        if (val) {
+          md += `**${input.getAttribute('data-meta-key')}:** ${val}  \n`;
+        }
+      });
+      md += `\n`;
+
+      document.querySelectorAll('.runbook-section').forEach(sec => {
+        const heading = sec.querySelector('.section-heading').textContent.trim();
+        md += `### ${heading}\n`;
+
+        sec.querySelectorAll('.check-item').forEach(item => {
+          const itemTitle = item.querySelector('.item-title').textContent.trim();
+          let mark = '[ ]';
+          if (item.classList.contains('status-done')) mark = '[x]';
+          else if (item.classList.contains('status-na')) mark = '[-]';
+
+          md += `- ${mark} ${itemTitle}\n`;
+        });
+        md += `\n`;
+      });
+
+      navigator.clipboard.writeText(md).then(() => {
+        showToast('Markdown summary copied to clipboard!');
+      }).catch(() => {
+        showToast('Unable to copy to clipboard');
+      });
+    }
+
+    // Show temporary toast message
+    function showToast(msg) {
+      const toast = document.getElementById('toast-message');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
